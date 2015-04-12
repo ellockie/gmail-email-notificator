@@ -90,9 +90,9 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	messageBodyHTML += "/ <strong>" + calculateYearsDifference(daysAgo) + "</strong> years ago - ";
 	messageBodyHTML += "<span style='background-color:#FFDFBF;'>&nbsp;[ " + formattedDate + " ] </span>"; // <br>
 	//  Display sender
-	messageBodyHTML += "<span style='padding-left:44px;'><span style='background-color:#ff0;'>" + sender_HTML + "</span></span>:<br>"; // <br>
+	messageBodyHTML += "<span style='padding-left:22px;'><span style='background-color:#ff0;'>" + sender_HTML + "</span></span>:<br>"; // <br>
 	//  Display topic
-	messageBodyHTML += "<span style='padding-left:88px;'><span style='color:#FFFFFF !important; background-color:#DFFFBF;'>&nbsp;"; 
+	messageBodyHTML += "<span style='padding-left:44px;'><span style='color:#FFFFFF !important; background-color:#DFFFBF;'>&nbsp;"; 
 	messageBodyHTML += "<a href='https://mail.google.com/mail/#all/" + link + "'>"; 
 	messageBodyHTML += firstMessageSubject + " </a></span></span> "; //&raquo;
 	messageBodyHTML += "</li>";
