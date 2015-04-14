@@ -2,7 +2,7 @@
 var YOUR_EMAIL_ADDRESS = "luxxart@gmail.com"
 
 var ONEDAY = 24 * 60 * 60 * 1000; // hours * minutes * seconds * milliseconds
-var totalDaysAgo = 0;  //  for testing purposes only?
+var totalDaysAgo = 0;  //  need to be reset after the short loop?
 
 /*
 	To use tables go to:
@@ -50,8 +50,7 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	var threads = label.getThreads();
 	
 	//  Test the function to query Fusion Tables
-	messageBodyHTML += "<strong>ATTENTION!</strong><br><br>Table IDs:<br>" + listTables() + "<br>";
-	messageBodyHTML += runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) + "<br>" + "<br>" + "<br>";
+	messageBodyHTML += "<strong>ATTENTION!</strong><br><br>Table IDs:<br>" + listTables() + "<br>" + "<br>" + "<br>";
 	// messageBodyHTML += runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length) + "<br>" + "<br>" + "<br>";
 	
 
@@ -196,7 +195,8 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	}
 	messageBodyHTML += "</ol>";
 
-	messageBodyHTML = "Total: <strong>" + numberWithCommas(totalDaysAgo) + "</strong> days ago<br>" + messageBodyHTML;
+	messageBodyHTML = "Total: <strong>" + numberWithCommas(totalDaysAgo) + "</strong> days ago<br>" + runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) + "<br>" + "<br>" + "<br>" + messageBodyHTML;
+	
 
 	sendEmailReport(
 		"[ " + LABEL_NAME + " ] " + threads.length + " msgs, "
@@ -273,7 +273,7 @@ function runQuery(tableId, message_numbers, label_name) {
     // sheet.appendRow(result.columns);
 
     // Append the message numbers.
-    sheet.appendRow([new Date(), label_name, message_numbers]);
+    sheet.appendRow([new Date(), label_name, message_numbers, numberWithCommas(totalDaysAgo)]);
 
     // Append the results.
     sheet.getRange(2, 1, result.rows.length, result.columns.length)
