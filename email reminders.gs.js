@@ -195,7 +195,7 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	}
 	messageBodyHTML += "</ol>";
 
-	messageBodyHTML = "Total: <strong>" + numberWithCommas(totalDaysAgo) + "</strong> days ago<br>" + runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) + "<br>" + "<br>" + "<br>" + messageBodyHTML;
+	messageBodyHTML = "Total: <strong>" + numberWithCommas(totalDaysAgo) + "</strong> days ago<br>" + runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) + "<br>" + messageBodyHTML;
 	
 
 	sendEmailReport(
