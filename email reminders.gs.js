@@ -2,7 +2,7 @@
 var YOUR_EMAIL_ADDRESS = "luxxart@gmail.com"
 
 var ONEDAY = 24 * 60 * 60 * 1000; // hours * minutes * seconds * milliseconds
-var totalDaysAgo = 0;  //  need to be reset after the short loop?
+var totalDaysAgo = 0;  //  no need to be reset after the short loop
 
 /*
 	To use tables go to:
@@ -10,10 +10,18 @@ var totalDaysAgo = 0;  //  need to be reset after the short loop?
 	https://developers.google.com/fusiontables/docs/v2/getting_started#invoking
 	https://developers.google.com/fusiontables/docs/v2/using
 	https://drive.google.com/?ddrp=1#query?view=2&filter=tables
+    
+    message API:
+    https://developers.google.com/apps-script/reference/gmail/gmail-message
 	
 	LOOK AT THE END OF THIS FILE
 */
 
+/*
+    TODO:
+    Change the days ago calculation formula to take into account the latest message, not the first ("last").
+    Charts will change drastically.
+*/
 
 
 function check_ToAnswer_Emails()
@@ -35,10 +43,10 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	var NUMBER_OF_FIRST_MESSAGES = 22;
 	var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-	var threadDate = 0, todaysDate = 0, daysAgo = 0;
+	var threadDate = 0, todaysDate = 0, lastMessage_daysAgo = 0;
 	var firstMessageSubject = "";
 	var formattedDate = "";
-	var sender_HTML = "( ";
+	var sender_HTML = "(&nbsp;";
 	var allThreadMessages = "";
 
 	var messageBodyHTML = "<br><br>The latest " + NUMBER_OF_FIRST_MESSAGES + " messages:<br><br><ol>";
@@ -50,7 +58,7 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	var threads = label.getThreads();
 	
 	//  Test the function to query Fusion Tables
-	messageBodyHTML += "<strong>ATTENTION!</strong><br><br>Table IDs:<br>" + listTables() + "<br>" + "<br>" + "<br>";
+	// messageBodyHTML += "<strong>Available tables:</strong><br>" + listTables() + "<br>" + "<br>" + "<br>";
 	// messageBodyHTML += runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length) + "<br>" + "<br>" + "<br>";
 	
 
@@ -69,10 +77,10 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 			Logger.log(threads[i].getFirstMessageSubject());
 			allMessageInThread = threads[i].getMessages();
 			allMessageInThread[0].getDate();
-			daysAgo = daydiff(threads[i].getLastMessageDate(),today());
+			lastMessage_daysAgo = daydiff(threads[i].getLastMessageDate(),today());
 		*/
 		formattedDate = Utilities.formatDate(new Date(threads[i].getLastMessageDate()), "GMT", "yyyy-MM-dd");	
-		daysAgo = calculateDaysDifference(new Date(threads[i].getLastMessageDate()),new Date(), ONEDAY, 0);
+		lastMessage_daysAgo = calculateDaysDifference(new Date(threads[i].getLastMessageDate()),new Date(), ONEDAY, 0);
 
 		// get first message subject
 		firstMessageSubject = threads[i].getFirstMessageSubject();
@@ -83,23 +91,39 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 		//  get (and format) the sender of the message
 
 		allThreadMessages = threads[i].getMessages();
-		var sender_email = allThreadMessages[0].getFrom();
+        var last_message_number = allThreadMessages.length - 1;
+        
+		var first_sender = allThreadMessages[0].getFrom();
+        var first_recipient = allThreadMessages[0].getTo();        
+        var last_sender = allThreadMessages[last_message_number].getFrom();
+        var last_recipient = allThreadMessages[last_message_number].getTo();
+        var latestMessage_daysAgo = calculateDaysDifference(new Date(allThreadMessages[last_message_number].getDate()),new Date(), ONEDAY, 0);
+        
 		
-		if(sender_email === YOUR_EMAIL_ADDRESS)
-			sender_email = "me";
+		if(first_sender === YOUR_EMAIL_ADDRESS    || first_sender === '"luxxart@gmail.com" <luxxart@gmail.com>'    || first_sender === "Lukasz Przewlocki"    || first_sender === "Lukasz Przewlocki <luxxart@gmail.com>")    first_sender = "[ me ]";
+		if(first_recipient === YOUR_EMAIL_ADDRESS || first_recipient === '"luxxart@gmail.com" <luxxart@gmail.com>' || first_recipient === "Lukasz Przewlocki" || first_recipient === "Lukasz Przewlocki <luxxart@gmail.com>") first_recipient = "[ me ]";
+        if(last_sender === YOUR_EMAIL_ADDRESS     || last_sender === '"luxxart@gmail.com" <luxxart@gmail.com>'     || last_sender === "Lukasz Przewlocki"     || last_sender === "Lukasz Przewlocki <luxxart@gmail.com>")     last_sender = "[ me ]";
+        if(last_recipient === YOUR_EMAIL_ADDRESS  || last_recipient === '"luxxart@gmail.com" <luxxart@gmail.com>'  || last_recipient === "Lukasz Przewlocki"  || last_recipient === "Lukasz Przewlocki <luxxart@gmail.com>")  last_recipient = "[ me ]";
+        
+        first_sender =    "<strong><span style='background-color:#ff0;'>&nbsp;" + first_sender +    "&nbsp;</span></strong>";
+        last_sender =     "<strong><span style='background-color:#ff0;'>&nbsp;" + last_sender +     "&nbsp;</span></strong>";
+        first_recipient = "<strong><span style='background-color:#ff0;'>&nbsp;" + first_recipient + "&nbsp;</span></strong>";
+        last_recipient =  "<strong><span style='background-color:#ff0;'>&nbsp;" + last_recipient +  "&nbsp;</span></strong>";
 
-		if(allThreadMessages[0] !== undefined)
-			sender_HTML = "(&nbsp;" + sender_email;
-		else
-			sender_HTML = "_message[0] UNDEFINED";
-
+        sender_HTML = "(&nbsp;";
+        
 		if(allThreadMessages.length>1)
-		{
-			if(allThreadMessages[1] !== undefined) {
-				sender_HTML += " --> " + sender_email;
-			}
-			else sender_HTML += "_message[1] UNDEFINED; allThreadMessages.length: " + allThreadMessages.length;
+		{            
+            
+			// if(allThreadMessages[1] !== undefined) 
+            sender_HTML += last_sender + " --> " + last_recipient;
+            sender_HTML += " = the latest of <strong>" + allThreadMessages.length + "</strong>."; // else sender_HTML += "_message[1] UNDEFINED; allThreadMessages.length: " + allThreadMessages.length;
+            sender_HTML += " Initially: ";
 		}
+
+		sender_HTML += first_sender + " --> " + first_recipient; // // if(allThreadMessages[0] !== undefined) __ else	sender_HTML = "_message[0] UNDEFINED";
+        
+        
 		sender_HTML += "&nbsp;)";
 
 		
@@ -113,15 +137,15 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 			var colour = "#f9f9f9";
 
 		messageBodyHTML += "<li style='background-color:" + colour + ";'>"; // 'padding:15px; margin-bottom: 15px;
-		messageBodyHTML += "<strong> " + daysAgo + "</strong> days ";
-		messageBodyHTML += "/ <strong>" + calculateYearsDifference(daysAgo) + "</strong> years ago ";
+		messageBodyHTML += "<strong> " + latestMessage_daysAgo + "</strong> <span style='color:#964c16;'>(" + lastMessage_daysAgo + ")</span> days ";
+		messageBodyHTML += "/ <strong>" + calculateYearsDifference(latestMessage_daysAgo) + "</strong> <span style='color:#964c16;'>(" + calculateYearsDifference(lastMessage_daysAgo) + ")</span> years ago ";
 		messageBodyHTML += "<span style='background-color:#FFBFBF;'>&nbsp;[ " + formattedDate + " ] </span>"; // <br>
 		//  Display sender
-		messageBodyHTML += "<span style='padding-left:44px;'><span style='background-color:#ff0;'>" + sender_HTML + "</span></span>:<br>"; // <br>
-		//  Display topic
-		messageBodyHTML += "<span style='padding-left:88px;'><span style='color:#FFFFFF !important; background-color:#99FF99;'>&nbsp;"; 
+		messageBodyHTML += "<span style='padding-left:44px;'>" + sender_HTML + "</span>:<br>"; // <br>
+		//  Display subject
+		messageBodyHTML += "<span style='padding-left:88px;'><span style='color:#FFFFFF !important; background-color:#cfc;'>&nbsp;"; 
 		messageBodyHTML += "<a href='https://mail.google.com/mail/#all/" + link + "'>"; 
-		messageBodyHTML += "<strong>" + firstMessageSubject + "</strong></a>&nbsp;</span></span> "; //&raquo;
+		messageBodyHTML += "<span>" + firstMessageSubject + "</span></a>&nbsp;</span></span> "; //&raquo;
 		messageBodyHTML += "</li>";
 
 		/*
@@ -133,7 +157,7 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	messageBodyHTML += "</ol>";
 
 	sender_HTML = "";
-	totalDaysAgo = 0
+	// totalDaysAgo = 0;  // no need, because there is a parameter telling not to count when not needed
 
 	//  List of all messages
 
@@ -144,11 +168,11 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 			Logger.log(threads[i].getFirstMessageSubject());
 			allMessageInThread = threads[i].getMessages();
 			allMessageInThread[0].getDate();
-			daysAgo = daydiff(threads[i].getLastMessageDate(),today());
+			lastMessage_daysAgo = daydiff(threads[i].getLastMessageDate(),today());
 		*/
 		formattedDate = Utilities.formatDate(new Date(threads[i].getLastMessageDate()), "GMT", "yyyy-MM-dd");
 
-		daysAgo = calculateDaysDifference(new Date(threads[i].getLastMessageDate()),new Date(), ONEDAY, 1);  
+		lastMessage_daysAgo = calculateDaysDifference(new Date(threads[i].getLastMessageDate()),new Date(), ONEDAY, 1);  
 
 		firstMessageSubject = threads[i].getFirstMessageSubject();
 		if(firstMessageSubject === "")
@@ -168,15 +192,15 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 			{
 			if(allThreadMessages[1] !== undefined)
 			{
-				sender_HTML += "- - - -> " + sender_email + "";
+				sender_HTML += "- - - -> " + first_sender + "";
 			}
 			else sender_HTML += "_message[1] UNDEFINED; allThreadMessages.length: " + allThreadMessages.length;
 			}
 			sender_HTML += "__]  -  ";
 		*/
 		
-		messageBodyHTML += "<li><strong> " + daysAgo + "</strong> days (<strong>";
-		messageBodyHTML += calculateYearsDifference(daysAgo) + "</strong> years) ago - [ ";
+		messageBodyHTML += "<li><strong> " + lastMessage_daysAgo + "</strong> days (<strong>";
+		messageBodyHTML += calculateYearsDifference(lastMessage_daysAgo) + "</strong> years) ago - [ ";
 		messageBodyHTML += formattedDate + " ] - ";
 		messageBodyHTML += sender_HTML + "<a href = '";
 		messageBodyHTML += threads[i].getPermalink() + "'>";
@@ -195,7 +219,13 @@ function createLabelledEmailsReport(LABEL_NAME, MESSAGE_TAG)
 	}
 	messageBodyHTML += "</ol>";
 
-	messageBodyHTML = "Total: <strong>" + numberWithCommas(totalDaysAgo) + "</strong> days ago<br>" + runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) + "<br>" + messageBodyHTML;
+	messageBodyHTML = "Total: <strong>" 
+      + numberWithCommas(totalDaysAgo) 
+      + "</strong> days ago<br><br>" 
+      + "The stats: " + runQuery("1uAaCQdBgiiWcOG-a1yiR2NomKz_i_S7eJ2X8F7iX", threads.length, LABEL_NAME) 
+      + "<br>" 
+      + "The script: <a href='https://script.google.com/d/169sTxQiDiqvKECPEelbt7WDjuw45AAKptb_yN36vgBQll8W5HoH12Qa5/edit?usp=drive_web'>[ SCR ] - Unactioned emails (email) reminder Script</a><br>"
+      + messageBodyHTML;
 	
 
 	sendEmailReport(
@@ -247,7 +277,8 @@ function listTables() {
   if (tables.items) {
     for (var i = 0; i < tables.items.length; i++) {
       table = tables.items[i];
-      result_HTML += "<strong>Table name:</strong> " + table.name + " <strong>Table ID:</strong> " + table.tableId + "<br>"; // Logger.log
+      result_HTML += " <strong>Table ID:</strong>&nbsp;&nbsp;&nbsp;" + table.tableId 
+        + " &nbsp;&nbsp;&nbsp;<strong>Table name:</strong>&nbsp;&nbsp;&nbsp;" + table.name + "<br>";
     }
   } else {
     Logger.log('No tables found.');
@@ -273,11 +304,13 @@ function runQuery(tableId, message_numbers, label_name) {
     // sheet.appendRow(result.columns);
 
     // Append the message numbers.
-    sheet.appendRow([new Date(), label_name, message_numbers, numberWithCommas(totalDaysAgo)]);
+    if(label_name === "___To do/To answer")
+        sheet.appendRow([new Date(), label_name, message_numbers, numberWithCommas(totalDaysAgo)]);
+    else
+        sheet.appendRow([new Date(), label_name, "", "", message_numbers, numberWithCommas(totalDaysAgo)]);
 
-    // Append the results.
-    sheet.getRange(2, 1, result.rows.length, result.columns.length)
-        .setValues(result.rows);
+    // Append the results (list the table entries).
+    // sheet.getRange(2, 1, result.rows.length, result.columns.length).setValues(result.rows);
 
     return 'Query results spreadsheet updated: %s',  spreadsheet.getUrl();
   } else {
