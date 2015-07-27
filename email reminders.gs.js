@@ -1,3 +1,4 @@
+// STILL PRIVATE INFO IN THE SCRIPT
 
 // get the email address of the person running the script
 var YOUR_EMAIL_ADDRESS = Session.getActiveUser().getEmail();
@@ -10,9 +11,32 @@ var PFU_REPORT_LABEL_NAME = "[ FUEmAl ]";
 var TO_ANSWER_LABEL_NAME = "___To do/To answer";
 var TA_REPORT_LABEL_NAME = "[ TAEmAl ]";
 var WORK_FOLLOW_UP_LABEL_NAME = "___Work/__Follow Up";
-var WFU_REPORT_LABEL_NAME = "WFUEmAl";
+var WFU_REPORT_LABEL_NAME = "[ WFUEmAl ]";
+
+// Note: in Gmail labels are assigned via filters
 
 var init_time = 0;
+
+/**
+* From:
+* https://developers.google.com/apps-script/guides/dialogs
+*/
+function onOpen() {
+  SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+      .createMenu('Custom Menu')
+      .addItem('Show sidebar', 'showSidebar')
+      .addToUi();
+}
+
+function showSidebar() {
+  var html = HtmlService.createHtmlOutputFromFile('Page')
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
+      .setTitle('My custom sidebar')
+      .setWidth(300);
+  SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+      .showSidebar(html);
+}
+
 
 /*
 	To use tables go to:
@@ -23,12 +47,16 @@ var init_time = 0;
 
 	message API:
 	 - https://developers.google.com/apps-script/reference/gmail/gmail-message
-    
+
     javascript code conventions:
      - http://javascript.crockford.com/code.html
      - http://www.w3schools.com/js/js_conventions.asp
 
 	LOOK AT THE END OF THIS FILE FOR FUSION TABLES FUNCTIONS
+
+    // try to read from the Fusion Table and feed JSON
+    - http://stackoverflow.com/questions/20881213/converting-json-object-into-javascript-array
+    - http://stackoverflow.com/questions/684672/loop-through-javascript-object
 */
 
 /*
@@ -80,8 +108,27 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
 	//  Get label reference
 	var label = GmailApp.getUserLabelByName(CURRENT_LABEL_NAME);
 
-	//  Get messages, members of that label
-	var threads = label.getThreads();
+	//  Get all message threads, members of the label
+	//  CAUTION: This method is limited to 500 threads!
+	//  var threads = label.getThreads();
+
+	//  This approach is better, no 500 messages limit!
+	var threads = [];
+	var threads_temp = [];
+	var threads_temp_length = 0;
+	var all_threads_temp_length = 0;
+	var start_thread = 0;
+
+	do
+	{
+		threads_temp = label.getThreads(start_thread, 100);
+        threads_temp_length = threads_temp.length;
+		threads = threads.concat(threads_temp);
+        all_threads_temp_length = threads.length;
+		start_thread += 100;
+	}
+	while (threads_temp_length == 100)
+
 
 	//  Test the function to query Fusion Tables
 	// messageBodyHTML += "<strong>Available tables:</strong><br>" + list_tables() + "<br>" + "<br>" + "<br>";
@@ -154,10 +201,7 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
 		}
 
 		sender_HTML += first_sender + " --> " + first_recipient; // // if(allThreadMessages[0] !== undefined) __ else	sender_HTML = "_message[0] UNDEFINED";
-
-
 		sender_HTML += "&nbsp;)";
-
 
 		//  Message ID to be used in message URL
 		var link = threads[i].getId();
@@ -191,6 +235,8 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
 	sender_HTML = "";
 
 
+
+
     /**********************************************************************************/
 	//  List of all messages
     /**********************************************************************************/
@@ -207,10 +253,6 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
 
 		formattedDate = Utilities.formatDate(new Date(threads[i].getLastMessageDate()), "GMT", "yyyy-MM-dd");
         // Utilities.sleep(111);
-        
-        // try to read from the Fusion Table and feed JSON
-        // http://stackoverflow.com/questions/20881213/converting-json-object-into-javascript-array
-        // http://stackoverflow.com/questions/684672/loop-through-javascript-object
 
         if(CURRENT_LABEL_NAME !== PERSONAL_FOLLOW_UP_LABEL_NAME)
         {
@@ -228,7 +270,10 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
         }
 		
 		// count the total delay in days, consider the latest message in each thread only
-		totalDaysAgo += latestMessage_daysAgo;
+		totalDaysAgo += latestMessage_daysAgo;        
+        
+		//  Message ID to be used in message URL
+		var link = threads[i].getId();
 
 		firstMessageSubject = threads[i].getFirstMessageSubject();
 		if(firstMessageSubject === "")
@@ -258,8 +303,9 @@ function create_labelled_emails_report(CURRENT_LABEL_NAME, CURRENT_REPORT_LABEL)
 		messageBodyHTML += "<li><strong> " + Math.floor(firstMessage_daysAgo) + "</strong> days (<strong>";
 		messageBodyHTML += calculate_years_difference(firstMessage_daysAgo) + "</strong> years) ago - [ ";
 		messageBodyHTML += formattedDate + " ] - ";
-		messageBodyHTML += sender_HTML + "<a href = '";
-		messageBodyHTML += threads[i].getPermalink() + "'>";
+		messageBodyHTML += sender_HTML;  // + "<a href = '";        
+        messageBodyHTML += "<a href='https://mail.google.com/mail/#all/" + link + "'>";
+		// messageBodyHTML += threads[i].getPermalink() + "'>";
 		messageBodyHTML += firstMessageSubject + "</a></li>";
 	}
 	messageBodyHTML += "</ol>";
